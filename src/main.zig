@@ -26,7 +26,7 @@ var stderr = &stderr_writer.interface;
 fn ray_color(ray: Ray, world: *HittableList) Color {
     var hit_record: HitRecord = undefined;
     if (world.hit(ray, 0, utils.infinity, &hit_record)) {
-        return hit_record.normal.add(Color.init(1, 1, 1).scale(0.5));
+        return hit_record.normal.add(Color.init(1, 1, 1)).scale(0.5);
     }
 
     const unit_direction = ray.direction.unit_vector();
