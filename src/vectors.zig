@@ -74,4 +74,16 @@ pub const Vec3 = struct {
     pub fn length_squared(self: Vec3) f64 {
         return self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2];
     }
+
+    pub fn dotProd(self: Vec3, other: Vec3) f64 {
+        return (self.e[0] * other.e[0]) + (self.e[1] * other.e[1]) + (self.e[2] * other.e[2]);
+    }
+
+    pub fn crossProd(self: Vec3, other: Vec3) Vec3 {
+        return .init(
+            self.e[1] * other.e[2] - self.e[2] * other.e[1],
+            self.e[2] * other.e[0] - self.e[0] * other.e[2],
+            self.e[0] * other.e[1] - self.e[1] * other.e[0],
+        );
+    }
 };

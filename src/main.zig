@@ -3,11 +3,17 @@ const utils = @import("utils.zig");
 const colors = @import("color.zig");
 const rays = @import("ray.zig");
 const vectors = @import("vectors.zig");
+const shapes = @import("shapes.zig");
+
+const math = std.math;
 
 const Color = colors.Color;
 const Ray = rays.Ray;
 const Point3 = vectors.Point3;
 const Vec3 = vectors.Vec3;
+const Sphere = shapes.Sphere;
+const HitRecord = shapes.HitRecord;
+const HittableList = shapes.HittableList;
 
 var stdout_buffer: [1024]u8 = undefined;
 var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
@@ -17,7 +23,12 @@ var stderr_buffer: [1024]u8 = undefined;
 var stderr_writer = std.fs.File.stderr().writer(&stderr_buffer);
 var stderr = &stderr_writer.interface;
 
-fn ray_color(ray: Ray) Color {
+fn ray_color(ray: Ray, world: *HittableList) Color {
+    var hit_record: HitRecord = undefined;
+    if (world.hit(ray, 0, utils.infinity, &hit_record)) {
+        return hit_record.normal.add(Color.init(1, 1, 1).scale(0.5));
+    }
+
     const unit_direction = ray.direction.unit_vector();
     const a = 0.5 * (unit_direction.y() + 1.0);
     return Color.init(1.0, 1.0, 1.0).scale(1.0 - a).add(
@@ -26,6 +37,10 @@ fn ray_color(ray: Ray) Color {
 }
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
     // Image
 
     const aspect_ratio: f64 = 16.0 / 9.0;
@@ -34,6 +49,14 @@ pub fn main() !void {
     // Calculate the image height, and ensure that it's at least 1.
     var image_height: u32 = @intFromFloat(image_width / aspect_ratio);
     image_height = if (image_height < 1) 1 else image_height;
+
+    // World
+
+    var world = try HittableList.init(allocator);
+    defer world.deinit();
+
+    try world.add(.{ .Sphere = Sphere.init(Point3.init(0, 0, -1), 0.5) });
+    try world.add(.{ .Sphere = Sphere.init(Point3.init(0, -100.5, -1), 100) });
 
     // Camera
 
@@ -71,7 +94,7 @@ pub fn main() !void {
             const ray_direction = pixel_center.sub(camera_center);
             const ray = Ray.init(camera_center, ray_direction);
 
-            const pixel_color = ray_color(ray);
+            const pixel_color = ray_color(ray, &world);
 
             try colors.write_color(stdout, pixel_color);
         }

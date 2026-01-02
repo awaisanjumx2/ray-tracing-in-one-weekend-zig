@@ -13,6 +13,6 @@ pub const Ray = struct {
     }
 
     pub fn at(self: Ray, t: f64) Point3 {
-        return vectors.add(self.origin, vectors.multiplyScalarWithVec3(t, self.direction));
+        return self.origin.add(self.direction.scale(t));
     }
 };
