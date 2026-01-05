@@ -4,6 +4,7 @@ const colors = @import("color.zig");
 const rays = @import("ray.zig");
 const vectors = @import("vectors.zig");
 const shapes = @import("shapes.zig");
+const interval = @import("interval.zig");
 
 const math = std.math;
 
@@ -14,6 +15,7 @@ const Vec3 = vectors.Vec3;
 const Sphere = shapes.Sphere;
 const HitRecord = shapes.HitRecord;
 const HittableList = shapes.HittableList;
+const Interval = interval.Interval;
 
 var stdout_buffer: [1024]u8 = undefined;
 var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
@@ -25,7 +27,7 @@ var stderr = &stderr_writer.interface;
 
 fn ray_color(ray: Ray, world: *HittableList) Color {
     var hit_record: HitRecord = undefined;
-    if (world.hit(ray, 0, utils.infinity, &hit_record)) {
+    if (world.hit(ray, Interval.init(0, utils.infinity), &hit_record)) {
         return hit_record.normal.add(Color.init(1, 1, 1)).scale(0.5);
     }
 

@@ -3,6 +3,7 @@ const utils = @import("utils.zig");
 const colors = @import("color.zig");
 const rays = @import("ray.zig");
 const vectors = @import("vectors.zig");
+const interval = @import("interval.zig");
 
 const math = std.math;
 
@@ -11,6 +12,7 @@ const Vec3 = vectors.Vec3;
 const Ray = rays.Ray;
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
+const Interval = interval.Interval;
 
 pub const Hittable = union(enum) {
     Sphere: Sphere,
@@ -39,14 +41,14 @@ pub const HittableList = struct {
         self.objects.clearAndFree(self.gpa);
     }
 
-    pub fn hit(self: HittableList, ray: Ray, ray_tmin: f64, ray_tmax: f64, rec: *HitRecord) bool {
+    pub fn hit(self: HittableList, ray: Ray, ray_t: Interval, rec: *HitRecord) bool {
         var temp_rec: HitRecord = undefined;
         var hit_anything = false;
-        var closest_so_far = ray_tmax;
+        var closest_so_far = ray_t.max;
 
         for (self.objects.items) |object| {
             const did_hit = switch (object) {
-                .Sphere => |sphere| sphere.hit(ray, ray_tmin, closest_so_far, &temp_rec),
+                .Sphere => |sphere| sphere.hit(ray, Interval.init(ray_t.min, closest_so_far), &temp_rec),
             };
             if (did_hit) {
                 hit_anything = true;
@@ -82,7 +84,7 @@ pub const Sphere = struct {
         return .{ .center = center, .radius = if (radius < 0) 0.0 else radius };
     }
 
-    pub fn hit(self: Sphere, ray: Ray, ray_tmin: f64, ray_tmax: f64, rec: *HitRecord) bool {
+    pub fn hit(self: Sphere, ray: Ray, ray_t: Interval, rec: *HitRecord) bool {
         const oc = self.center.sub(ray.origin);
         const a = ray.direction.length_squared();
         const h = ray.direction.dotProd(oc);
@@ -96,9 +98,9 @@ pub const Sphere = struct {
 
         // Find the nearest root that lies in the acceptable range.
         var root = (h - sqrtd) / a;
-        if (root <= ray_tmin or ray_tmax <= root) {
+        if (!ray_t.surrounds(root)) {
             root = (h + sqrtd) / a;
-            if (root <= ray_tmin or ray_tmax <= root)
+            if (!ray_t.surrounds(root))
                 return false;
         }
 
