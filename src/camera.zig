@@ -17,15 +17,19 @@ const Interval = interval.Interval;
 pub const Camera = struct {
     aspect_ratio: f64, // Ratio of image width over height
     image_width: u32, // Rendered image width in pixel count
+    samples_per_pixel: u32, // Count of random samples for each pixel
     image_height: u32, // Rendered image height
     center: Point3, // Camera center
     pixel00_loc: Vec3, // Location of pixel 0, 0
     pixel_delta_u: Vec3, // Offset to pixel to the right
     pixel_delta_v: Vec3, // Offset to pixel below
+    pixel_samples_scale: f64, // Color scale factor for a sum of pixel samples
 
-    pub fn init(aspect_ratio: f64, image_width: u32) Camera {
+    pub fn init(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32) Camera {
         var image_height: u32 = @intFromFloat(@as(f64, @floatFromInt(image_width)) / aspect_ratio);
         image_height = if (image_height < 1) 1 else image_height;
+
+        const pixel_samples_scale = 1.0 / @as(f64, @floatFromInt(samples_per_pixel));
 
         const center = Point3.init(0, 0, 0);
 
@@ -57,6 +61,8 @@ pub const Camera = struct {
             .pixel00_loc = pixel00_loc,
             .pixel_delta_u = pixel_delta_u,
             .pixel_delta_v = pixel_delta_v,
+            .samples_per_pixel = samples_per_pixel,
+            .pixel_samples_scale = pixel_samples_scale,
         };
     }
 
@@ -66,17 +72,38 @@ pub const Camera = struct {
         for (0..self.image_height) |j| {
             try utils.bufferedPrint(stderr, "\rScanlines remaining: {d} \n", .{self.image_height - j});
             for (0..self.image_width) |i| {
-                const pixel_center = self.pixel00_loc
-                    .add(self.pixel_delta_u.scale(@floatFromInt(i)))
-                    .add(self.pixel_delta_v.scale(@floatFromInt(j)));
-                const ray_direction = pixel_center.sub(self.center);
-                const ray = Ray.init(self.center, ray_direction);
+                var pixel_color = Color.zero();
+                var sample: i32 = 0;
+                while (sample < self.samples_per_pixel) : (sample += 1) {
+                    const ray = get_ray(self, i, j);
+                    pixel_color = pixel_color.add(ray_color(ray, world));
+                }
 
-                const pixel_color = ray_color(ray, world);
-
-                try colors.write_color(stdout, pixel_color);
+                try colors.write_color(stdout, pixel_color.scale(self.pixel_samples_scale));
             }
         }
+    }
+
+    fn get_ray(self: *Camera, i: usize, j: usize) Ray {
+        // Construct a camera ray originating from the origin and directed at randomly sampled
+        // point around the pixel location i, j.
+
+        const offset = sample_square();
+        const pixel_sample = self.pixel00_loc.add(
+            self.pixel_delta_u.scale(@as(f64, @floatFromInt(i)) + offset.x()),
+        ).add(
+            self.pixel_delta_v.scale(@as(f64, @floatFromInt(j)) + offset.y()),
+        );
+
+        const ray_origin = self.center;
+        const ray_direction = pixel_sample.sub(ray_origin);
+
+        return Ray.init(ray_origin, ray_direction);
+    }
+
+    fn sample_square() Vec3 {
+        // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
+        return Vec3.init(utils.random_float() - 0.5, utils.random_float() - 0.5, 0);
     }
 
     fn ray_color(ray: Ray, world: *HittableList) Color {
