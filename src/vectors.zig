@@ -1,4 +1,5 @@
 const std = @import("std");
+const utils = @import("utils.zig");
 const math = std.math;
 
 pub const Point3 = Vec3;
@@ -67,12 +68,47 @@ pub const Vec3 = struct {
         return self.div(self.length());
     }
 
+    pub fn random_unit_vector() Vec3 {
+        while (true) {
+            const p = Vec3.random_range(-1, 1);
+            const len_sq = p.length_squared();
+            if (1e-160 < len_sq and len_sq <= 1) {
+                return p.div(math.sqrt(len_sq));
+            }
+        }
+    }
+
+    pub fn random_on_hemisphere(normal: Vec3) Vec3 {
+        const on_unit_sphere = random_unit_vector();
+        if (on_unit_sphere.dotProd(normal) > 0.0) { // In the same hemisphere as the normal
+            return on_unit_sphere;
+        } else {
+            return on_unit_sphere.negate();
+        }
+    }
+
     pub fn length(self: Vec3) f64 {
         return math.sqrt(self.length_squared());
     }
 
     pub fn length_squared(self: Vec3) f64 {
         return self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2];
+    }
+
+    pub fn random() Vec3 {
+        return .init(
+            utils.random_float(),
+            utils.random_float(),
+            utils.random_float(),
+        );
+    }
+
+    pub fn random_range(min: f64, max: f64) Vec3 {
+        return .init(
+            utils.random_float_range(min, max),
+            utils.random_float_range(min, max),
+            utils.random_float_range(min, max),
+        );
     }
 
     pub fn dotProd(self: Vec3, other: Vec3) f64 {

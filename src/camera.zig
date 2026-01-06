@@ -24,8 +24,9 @@ pub const Camera = struct {
     pixel_delta_u: Vec3, // Offset to pixel to the right
     pixel_delta_v: Vec3, // Offset to pixel below
     pixel_samples_scale: f64, // Color scale factor for a sum of pixel samples
+    max_depth: u32, // Maximum number of ray bounces into scene
 
-    pub fn init(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32) Camera {
+    pub fn init(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32, max_depth: u32) Camera {
         var image_height: u32 = @intFromFloat(@as(f64, @floatFromInt(image_width)) / aspect_ratio);
         image_height = if (image_height < 1) 1 else image_height;
 
@@ -63,6 +64,7 @@ pub const Camera = struct {
             .pixel_delta_v = pixel_delta_v,
             .samples_per_pixel = samples_per_pixel,
             .pixel_samples_scale = pixel_samples_scale,
+            .max_depth = max_depth,
         };
     }
 
@@ -76,7 +78,7 @@ pub const Camera = struct {
                 var sample: i32 = 0;
                 while (sample < self.samples_per_pixel) : (sample += 1) {
                     const ray = get_ray(self, i, j);
-                    pixel_color = pixel_color.add(ray_color(ray, world));
+                    pixel_color = pixel_color.add(ray_color(ray, self.max_depth, world));
                 }
 
                 try colors.write_color(stdout, pixel_color.scale(self.pixel_samples_scale));
@@ -106,10 +108,15 @@ pub const Camera = struct {
         return Vec3.init(utils.random_float() - 0.5, utils.random_float() - 0.5, 0);
     }
 
-    fn ray_color(ray: Ray, world: *HittableList) Color {
+    fn ray_color(ray: Ray, depth: u32, world: *HittableList) Color {
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if (depth <= 0)
+            return Color.zero();
+
         var hit_record: HitRecord = undefined;
-        if (world.hit(ray, Interval.init(0, utils.infinity), &hit_record)) {
-            return hit_record.normal.add(Color.init(1, 1, 1)).scale(0.5);
+        if (world.hit(ray, Interval.init(0.001, utils.infinity), &hit_record)) {
+            const direction = hit_record.normal.add(Vec3.random_unit_vector());
+            return ray_color(Ray.init(hit_record.p, direction), depth - 1, world).scale(0.5);
         }
 
         const unit_direction = ray.direction.unit_vector();

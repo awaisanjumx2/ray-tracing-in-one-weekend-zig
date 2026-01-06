@@ -30,7 +30,7 @@ pub fn main() !void {
     try world.add(.{ .Sphere = Sphere.init(Point3.init(0, 0, -1), 0.5) });
     try world.add(.{ .Sphere = Sphere.init(Point3.init(0, -100.5, -1), 100) });
 
-    var camera = Camera.init(16.0 / 9.0, 400, 10);
+    var camera = Camera.init(16.0 / 9.0, 400, 10, 50);
     try camera.render(&world, stdout, stderr);
 
     try stdout.flush();
