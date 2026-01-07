@@ -12,6 +12,7 @@ const HittableList = shapes.HittableList;
 const Camera = camera_mod.Camera;
 const Lambertian = material.Lambertian;
 const Metal = material.Metal;
+const Dielectric = material.Dielectric;
 const Color = colors.Color;
 
 var stdout_buffer: [1024]u8 = undefined;
@@ -34,12 +35,14 @@ pub fn main() !void {
 
     const material_ground = Lambertian.init(Color.init(0.8, 0.8, 0.0));
     const material_center = Lambertian.init(Color.init(0.1, 0.2, 0.5));
-    const material_left = Metal.init(Color.init(0.8, 0.8, 0.8), 0.3);
+    const material_left = Dielectric.init(1.50);
+    const material_bubble = Dielectric.init(1.00 / 1.50);
     const material_right = Metal.init(Color.init(0.8, 0.6, 0.2), 1.0);
 
     try world.add(.{ .Sphere = Sphere.init(Point3.init(0.0, -100.5, -1.0), 100.0, .{ .Lambertian = material_ground }) });
     try world.add(.{ .Sphere = Sphere.init(Point3.init(0.0, 0.0, -1.2), 0.5, .{ .Lambertian = material_center }) });
-    try world.add(.{ .Sphere = Sphere.init(Point3.init(-1.0, 0.0, -1.0), 0.5, .{ .Metal = material_left }) });
+    try world.add(.{ .Sphere = Sphere.init(Point3.init(-1.0, 0.0, -1.0), 0.5, .{ .Dielectric = material_left }) });
+    try world.add(.{ .Sphere = Sphere.init(Point3.init(-1.0, 0.0, -1.0), 0.4, .{ .Dielectric = material_bubble }) });
     try world.add(.{ .Sphere = Sphere.init(Point3.init(1.0, 0.0, -1.0), 0.5, .{ .Metal = material_right }) });
 
     var camera = Camera.init(16.0 / 9.0, 400, 10, 50);

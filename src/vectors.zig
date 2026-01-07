@@ -25,7 +25,7 @@ pub const Vec3 = struct {
     }
 
     pub fn negate(self: Vec3) Vec3 {
-        return .{ .e = [3]f64{ self.e[0], self.e[1], self.e[2] } };
+        return .{ .e = [3]f64{ -self.e[0], -self.e[1], -self.e[2] } };
     }
 
     pub fn add(self: Vec3, other: Vec3) Vec3 {
@@ -89,6 +89,13 @@ pub const Vec3 = struct {
 
     pub fn reflect(v: Vec3, n: Vec3) Vec3 {
         return v.sub(n.scale(2 * v.dotProd(n)));
+    }
+
+    pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) Vec3 {
+        const cos_theta: f64 = @min(uv.negate().dotProd(n), 1.0);
+        const r_out_perp = uv.add(n.scale(cos_theta)).scale(etai_over_etat);
+        const r_out_parallel = n.scale(-math.sqrt(@abs(1.0 - r_out_perp.length_squared())));
+        return r_out_perp.add(r_out_parallel);
     }
 
     pub fn length(self: Vec3) f64 {
