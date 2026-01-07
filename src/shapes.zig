@@ -4,6 +4,7 @@ const colors = @import("color.zig");
 const rays = @import("ray.zig");
 const vectors = @import("vectors.zig");
 const interval = @import("interval.zig");
+const material = @import("material.zig");
 
 const math = std.math;
 
@@ -13,6 +14,7 @@ const Ray = rays.Ray;
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const Interval = interval.Interval;
+const Material = material.Material;
 
 pub const Hittable = union(enum) {
     Sphere: Sphere,
@@ -66,6 +68,7 @@ pub const HitRecord = struct {
     normal: Vec3,
     t: f64,
     front_face: bool,
+    material: Material,
 
     pub fn set_face_normal(self: *HitRecord, ray: Ray, outward_normal: Vec3) void {
         // Sets the hit record normal vector.
@@ -79,9 +82,14 @@ pub const HitRecord = struct {
 pub const Sphere = struct {
     center: Point3,
     radius: f64,
+    material: Material,
 
-    pub fn init(center: Point3, radius: f64) Sphere {
-        return .{ .center = center, .radius = if (radius < 0) 0.0 else radius };
+    pub fn init(center: Point3, radius: f64, mat: Material) Sphere {
+        return .{
+            .center = center,
+            .radius = if (radius < 0) 0.0 else radius,
+            .material = mat,
+        };
     }
 
     pub fn hit(self: Sphere, ray: Ray, ray_t: Interval, rec: *HitRecord) bool {
@@ -106,6 +114,7 @@ pub const Sphere = struct {
 
         rec.*.t = root;
         rec.*.p = ray.at(rec.t);
+        rec.*.material = self.material;
         const outward_normal = rec.p.sub(self.center).div(self.radius);
         rec.set_face_normal(ray, outward_normal);
 

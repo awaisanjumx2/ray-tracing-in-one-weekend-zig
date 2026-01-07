@@ -115,8 +115,17 @@ pub const Camera = struct {
 
         var hit_record: HitRecord = undefined;
         if (world.hit(ray, Interval.init(0.001, utils.infinity), &hit_record)) {
-            const direction = hit_record.normal.add(Vec3.random_unit_vector());
-            return ray_color(Ray.init(hit_record.p, direction), depth - 1, world).scale(0.5);
+            var scattered: Ray = undefined;
+            var attenuation: Color = undefined;
+
+            const did_scatter = switch (hit_record.material) {
+                .Metal => |metal| metal.scatter(ray, hit_record, &attenuation, &scattered),
+                .Lambertian => |lambertian| lambertian.scatter(ray, hit_record, &attenuation, &scattered),
+            };
+            if (did_scatter) {
+                return ray_color(scattered, depth - 1, world).mul(attenuation);
+            }
+            return Color.zero();
         }
 
         const unit_direction = ray.direction.unit_vector();

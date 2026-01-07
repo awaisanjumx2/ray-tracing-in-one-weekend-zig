@@ -87,12 +87,22 @@ pub const Vec3 = struct {
         }
     }
 
+    pub fn reflect(v: Vec3, n: Vec3) Vec3 {
+        return v.sub(n.scale(2 * v.dotProd(n)));
+    }
+
     pub fn length(self: Vec3) f64 {
         return math.sqrt(self.length_squared());
     }
 
     pub fn length_squared(self: Vec3) f64 {
         return self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2];
+    }
+
+    pub fn near_zero(self: Vec3) bool {
+        // Return true if the vector is close to zero in all dimensions.
+        const s = 1e-8;
+        return (@abs(self.e[0]) < s) and (@abs(self.e[1]) < s) and (@abs(self.e[2]) < s);
     }
 
     pub fn random() Vec3 {
