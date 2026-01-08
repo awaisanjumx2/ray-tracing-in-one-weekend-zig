@@ -68,6 +68,14 @@ pub const Vec3 = struct {
         return self.div(self.length());
     }
 
+    pub fn random_in_unit_disk() Vec3 {
+        while (true) {
+            const p = Vec3.init(utils.random_float_range(-1, 1), utils.random_float_range(-1, 1), 0);
+            if (p.length_squared() < 1)
+                return p;
+        }
+    }
+
     pub fn random_unit_vector() Vec3 {
         while (true) {
             const p = Vec3.random_range(-1, 1);

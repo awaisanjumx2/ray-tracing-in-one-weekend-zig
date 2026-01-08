@@ -55,6 +55,8 @@ pub fn main() !void {
         Point3.init(-2, 2, 1),
         Point3.init(0, 0, -1),
         Vec3.init(0, 1, 0),
+        10.0,
+        3.4,
     );
     try camera.render(&world, stdout, stderr);
 
