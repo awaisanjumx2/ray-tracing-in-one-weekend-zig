@@ -14,6 +14,7 @@ const Lambertian = material.Lambertian;
 const Metal = material.Metal;
 const Dielectric = material.Dielectric;
 const Color = colors.Color;
+const Vec3 = vectors.Vec3;
 
 var stdout_buffer: [1024]u8 = undefined;
 var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
@@ -45,7 +46,16 @@ pub fn main() !void {
     try world.add(.{ .Sphere = Sphere.init(Point3.init(-1.0, 0.0, -1.0), 0.4, .{ .Dielectric = material_bubble }) });
     try world.add(.{ .Sphere = Sphere.init(Point3.init(1.0, 0.0, -1.0), 0.5, .{ .Metal = material_right }) });
 
-    var camera = Camera.init(16.0 / 9.0, 400, 10, 50);
+    var camera = Camera.init(
+        16.0 / 9.0,
+        400,
+        10,
+        50,
+        20,
+        Point3.init(-2, 2, 1),
+        Point3.init(0, 0, -1),
+        Vec3.init(0, 1, 0),
+    );
     try camera.render(&world, stdout, stderr);
 
     try stdout.flush();
