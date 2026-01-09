@@ -15,6 +15,7 @@ const Metal = material.Metal;
 const Dielectric = material.Dielectric;
 const Color = colors.Color;
 const Vec3 = vectors.Vec3;
+const Material = material.Material;
 
 var stdout_buffer: [1024]u8 = undefined;
 var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
@@ -34,29 +35,63 @@ pub fn main() !void {
     var world = try HittableList.init(allocator);
     defer world.deinit();
 
-    const material_ground = Lambertian.init(Color.init(0.8, 0.8, 0.0));
-    const material_center = Lambertian.init(Color.init(0.1, 0.2, 0.5));
-    const material_left = Dielectric.init(1.50);
-    const material_bubble = Dielectric.init(1.00 / 1.50);
-    const material_right = Metal.init(Color.init(0.8, 0.6, 0.2), 1.0);
+    const ground_material = Lambertian.init(Color.init(0.5, 0.5, 0.5));
+    try world.add(.{ .Sphere = .init(.init(0, -1000, 0), 1000, .{ .Lambertian = ground_material }) });
 
-    try world.add(.{ .Sphere = Sphere.init(Point3.init(0.0, -100.5, -1.0), 100.0, .{ .Lambertian = material_ground }) });
-    try world.add(.{ .Sphere = Sphere.init(Point3.init(0.0, 0.0, -1.2), 0.5, .{ .Lambertian = material_center }) });
-    try world.add(.{ .Sphere = Sphere.init(Point3.init(-1.0, 0.0, -1.0), 0.5, .{ .Dielectric = material_left }) });
-    try world.add(.{ .Sphere = Sphere.init(Point3.init(-1.0, 0.0, -1.0), 0.4, .{ .Dielectric = material_bubble }) });
-    try world.add(.{ .Sphere = Sphere.init(Point3.init(1.0, 0.0, -1.0), 0.5, .{ .Metal = material_right }) });
+    var a: i32 = -11;
+    while (a < 11) : (a += 1) {
+        var b: i32 = -11;
+        while (b < 11) : (b += 1) {
+            const chose_mat = utils.random_float();
+            const center = Point3.init(
+                @as(f64, @floatFromInt(a)) + 0.9 * utils.random_float(),
+                0.2,
+                @as(f64, @floatFromInt(b)) + 0.9 * utils.random_float(),
+            );
+
+            if (center.sub(.init(4, 0.2, 0)).length() > 0.9) {
+                var sphere_material: Material = undefined;
+
+                if (chose_mat < 0.8) {
+                    // diffuse
+                    const albedo = Color.random().mul(Color.random());
+                    sphere_material = .{ .Lambertian = .init(albedo) };
+                    try world.add(.{ .Sphere = .init(center, 0.2, sphere_material) });
+                } else if (chose_mat < 0.95) {
+                    // metal
+                    const albedo = Color.random_range(0.5, 1.0);
+                    const fuzz = utils.random_float_range(0.0, 0.5);
+                    sphere_material = .{ .Metal = .init(albedo, fuzz) };
+                    try world.add(.{ .Sphere = .init(center, 0.2, sphere_material) });
+                } else {
+                    // glass
+                    sphere_material = .{ .Dielectric = .init(1.5) };
+                    try world.add(.{ .Sphere = .init(center, 0.2, sphere_material) });
+                }
+            }
+        }
+    }
+
+    const material1 = Dielectric.init(1.5);
+    try world.add(.{ .Sphere = .init(.init(0, 1, 0), 1.0, .{ .Dielectric = material1 }) });
+
+    const material2 = Lambertian.init(.init(0.4, 0.2, 0.1));
+    try world.add(.{ .Sphere = .init(.init(-4, 1, 0), 1.0, .{ .Lambertian = material2 }) });
+
+    const material3 = Metal.init(.init(0.7, 0.6, 0.5), 0.0);
+    try world.add(.{ .Sphere = .init(.init(4, 1, 0), 1.0, .{ .Metal = material3 }) });
 
     var camera = Camera.init(
         16.0 / 9.0,
-        400,
-        10,
+        1200,
+        500,
         50,
         20,
-        Point3.init(-2, 2, 1),
-        Point3.init(0, 0, -1),
-        Vec3.init(0, 1, 0),
+        .init(13, 2, 3),
+        .init(0, 0, 0),
+        .init(0, 1, 0),
+        0.6,
         10.0,
-        3.4,
     );
     try camera.render(&world, stdout, stderr);
 
