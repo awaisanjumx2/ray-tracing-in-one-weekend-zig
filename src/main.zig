@@ -81,6 +81,9 @@ pub fn main() !void {
     const material3 = Metal.init(.init(0.7, 0.6, 0.5), 0.0);
     try world.add(.{ .Sphere = .init(.init(4, 1, 0), 1.0, .{ .Metal = material3 }) });
 
+    // Build BVH acceleration structure
+    try world.build_bvh();
+
     var camera = Camera.init(
         16.0 / 9.0,
         1200,

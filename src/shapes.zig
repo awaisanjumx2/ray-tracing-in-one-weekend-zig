@@ -5,6 +5,7 @@ const rays = @import("ray.zig");
 const vectors = @import("vectors.zig");
 const interval = @import("interval.zig");
 const material = @import("material.zig");
+const bvh = @import("bvh.zig");
 
 const math = std.math;
 
@@ -15,6 +16,8 @@ const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const Interval = interval.Interval;
 const Material = material.Material;
+const AABB = bvh.AABB;
+const BVHNode = bvh.BVHNode;
 
 pub const Hittable = union(enum) {
     Sphere: Sphere,
@@ -22,16 +25,22 @@ pub const Hittable = union(enum) {
 
 pub const HittableList = struct {
     objects: ArrayList(Hittable),
+    bvh_root: ?*BVHNode,
     gpa: Allocator,
 
     pub fn init(gpa: Allocator) !HittableList {
         return .{
             .gpa = gpa,
-            .objects = try ArrayList(Hittable).initCapacity(gpa, 488),
+            .objects = try ArrayList(Hittable).initCapacity(gpa, 500),
+            .bvh_root = null,
         };
     }
 
     pub fn deinit(self: *HittableList) void {
+        if (self.bvh_root) |root| {
+            root.deinit(self.gpa);
+            self.gpa.destroy(root);
+        }
         self.objects.deinit(self.gpa);
     }
 
@@ -43,7 +52,18 @@ pub const HittableList = struct {
         self.objects.clearAndFree(self.gpa);
     }
 
+    pub fn build_bvh(self: *HittableList) !void {
+        if (self.objects.items.len == 0) return;
+        self.bvh_root = try BVHNode.build(self.gpa, self.objects.items, 0, self.objects.items.len);
+    }
+
     pub fn hit(self: HittableList, ray: Ray, ray_t: Interval, rec: *HitRecord) bool {
+        // Use BVH if available
+        if (self.bvh_root) |root| {
+            return root.hit(ray, ray_t, rec);
+        }
+
+        // Fallback to linear search
         var temp_rec: HitRecord = undefined;
         var hit_anything = false;
         var closest_so_far = ray_t.max;
@@ -90,6 +110,14 @@ pub const Sphere = struct {
             .radius = if (radius < 0) 0.0 else radius,
             .material = mat,
         };
+    }
+
+    pub fn bounding_box(self: Sphere) AABB {
+        const rvec = Vec3.init(self.radius, self.radius, self.radius);
+        return AABB.init(
+            self.center.sub(rvec),
+            self.center.add(rvec),
+        );
     }
 
     pub fn hit(self: Sphere, ray: Ray, ray_t: Interval, rec: *HitRecord) bool {
