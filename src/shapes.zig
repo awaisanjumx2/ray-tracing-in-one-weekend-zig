@@ -27,7 +27,7 @@ pub const HittableList = struct {
     pub fn init(gpa: Allocator) !HittableList {
         return .{
             .gpa = gpa,
-            .objects = try ArrayList(Hittable).initCapacity(gpa, 2),
+            .objects = try ArrayList(Hittable).initCapacity(gpa, 488),
         };
     }
 

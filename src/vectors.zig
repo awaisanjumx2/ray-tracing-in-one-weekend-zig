@@ -4,7 +4,7 @@ const math = std.math;
 
 pub const Point3 = Vec3;
 pub const Vec3 = struct {
-    e: [3]f64,
+    e: @Vector(3, f64),
 
     pub fn zero() Vec3 {
         return .{ .e = [3]f64{ 0, 0, 0 } };
@@ -25,43 +25,27 @@ pub const Vec3 = struct {
     }
 
     pub fn negate(self: Vec3) Vec3 {
-        return .{ .e = [3]f64{ -self.e[0], -self.e[1], -self.e[2] } };
+        return .{ .e = -self.e };
     }
 
     pub fn add(self: Vec3, other: Vec3) Vec3 {
-        return .init(
-            self.e[0] + other.e[0],
-            self.e[1] + other.e[1],
-            self.e[2] + other.e[2],
-        );
+        return .{ .e = self.e + other.e };
     }
 
     pub fn sub(self: Vec3, other: Vec3) Vec3 {
-        return .init(
-            self.e[0] - other.e[0],
-            self.e[1] - other.e[1],
-            self.e[2] - other.e[2],
-        );
+        return .{ .e = self.e - other.e };
     }
 
     pub fn mul(self: Vec3, other: Vec3) Vec3 {
-        return .init(
-            self.e[0] * other.e[0],
-            self.e[1] * other.e[1],
-            self.e[2] * other.e[2],
-        );
+        return .{ .e = self.e * other.e };
     }
 
     pub fn scale(self: Vec3, t: f64) Vec3 {
-        return .init(
-            t * self.e[0],
-            t * self.e[1],
-            t * self.e[2],
-        );
+        return .{ .e = self.e * @as(@Vector(3, f64), @splat(t)) };
     }
 
     pub fn div(self: Vec3, t: f64) Vec3 {
-        return self.scale(1.0 / t);
+        return .{ .e = self.e / @as(@Vector(3, f64), @splat(t)) };
     }
 
     pub fn unit_vector(self: Vec3) Vec3 {
